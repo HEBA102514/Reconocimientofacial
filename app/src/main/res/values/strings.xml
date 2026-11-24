@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Verificación Biométrica UD</string>
+    <string name="subtitulo_curso">POO · Verificación Facial 1:1 en Dispositivo (ML Kit + MobileFaceNet)</string>
+    <string name="titulo_referencia">Paso 1: Imagen de Referencia</string>
+    <string name="titulo_validacion">Paso 2: Imagen de Validación</string>
+    <string name="btn_camara">Cámara</string>
+    <string name="btn_galeria">Galería</string>
+    <string name="sin_captura">Sin rostro procesado aún</string>
+    <string name="titulo_validador">Paso 3: Estrategia Polimórfica (ValidadorFacial)</string>
+    <string name="modo_estandar">Estándar (τ = 0.70 · Equilibrio FAR/FRR)</string>
+    <string name="modo_estricto">Estricto (τ = 0.82 · Control de Pose ≤ 18° y Ojos Abiertos)</string>
+    <string name="btn_verificar">Paso 4: Verificar Identidad 1:1 (Similitud Coseno)</string>
+    <string name="titulo_resultado">Resultado de la Verificación Biométrica</string>
+    <string name="resultado_pendiente">Capture ambas muestras y presione Verificar Identidad.</string>
+    <string name="btn_historial">Ver Historial (Archivo CSV)</string>
+</resources>
