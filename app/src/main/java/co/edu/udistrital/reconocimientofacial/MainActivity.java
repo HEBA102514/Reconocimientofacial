@@ -1,6 +1,7 @@
 package co.edu.udistrital.reconocimientofacial;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -34,6 +35,7 @@ import co.edu.udistrital.reconocimientofacial.excepciones.ModeloNoDisponibleExce
 import co.edu.udistrital.reconocimientofacial.modelo.DetectorRostroMLKit;
 import co.edu.udistrital.reconocimientofacial.modelo.ExtractorMobileFaceNet;
 import co.edu.udistrital.reconocimientofacial.modelo.Fotograma;
+import co.edu.udistrital.reconocimientofacial.modelo.GestorSesion;
 import co.edu.udistrital.reconocimientofacial.modelo.IDetectorRostro;
 import co.edu.udistrital.reconocimientofacial.modelo.IExtractorCaracteristicas;
 import co.edu.udistrital.reconocimientofacial.modelo.ResultadoVerificacion;
@@ -42,6 +44,7 @@ import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstricto;
 import co.edu.udistrital.reconocimientofacial.persistencia.IRepositorioHistorial;
 import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioHistorialArchivo;
 import co.edu.udistrital.reconocimientofacial.vista.IVistaBiometrica;
+import co.edu.udistrital.reconocimientofacial.vista.LoginActivity;
 
 /**
  * Vista principal (MainActivity) en la arquitectura MVC.
@@ -103,6 +106,13 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!GestorSesion.obtenerInstancia().isSesionActiva()) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
         WindowCompat.enableEdgeToEdge(getWindow());
         setContentView(R.layout.activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -123,7 +133,12 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         txtEstadoProgreso = findViewById(R.id.txtEstadoProgreso);
         txtVeredictoPrincipal = findViewById(R.id.txtVeredictoPrincipal);
         txtDetalleMetricas = findViewById(R.id.txtDetalleMetricas);
+        TextView txtUsuarioSesion = findViewById(R.id.txtUsuarioSesion);
 
+        String usuarioActivo = GestorSesion.obtenerInstancia().getUsuarioActivo();
+        txtUsuarioSesion.setText("Sesión activa: " + (usuarioActivo != null ? usuarioActivo : ""));
+
+        Button btnCerrarSesion = findViewById(R.id.btnCerrarSesion);
         Button btnCamaraReferencia = findViewById(R.id.btnCamaraReferencia);
         Button btnGaleriaReferencia = findViewById(R.id.btnGaleriaReferencia);
         Button btnCamaraValidacion = findViewById(R.id.btnCamaraValidacion);
@@ -174,6 +189,16 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
                 controlador.consultarHistorial();
             }
         });
+
+        btnCerrarSesion.setOnClickListener(v -> cerrarSesionUsuario());
+    }
+
+    private void cerrarSesionUsuario() {
+        GestorSesion.obtenerInstancia().cerrarSesion();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void inicializarArquitecturaMVC() {

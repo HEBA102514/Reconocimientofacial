@@ -13,4 +13,20 @@
     <string name="titulo_resultado">Resultado de la Verificación Biométrica</string>
     <string name="resultado_pendiente">Capture ambas muestras y presione Verificar Identidad.</string>
     <string name="btn_historial">Ver Historial (Archivo CSV)</string>
+
+    <!-- Login y Registro con Consentimiento Informado -->
+    <string name="titulo_login">Control de Acceso Biométrico</string>
+    <string name="subtitulo_login">Ingrese sus credenciales locales cifradas con AES</string>
+    <string name="hint_usuario">Nombre de usuario</string>
+    <string name="hint_clave">Contraseña</string>
+    <string name="btn_iniciar_sesion">Iniciar sesión</string>
+    <string name="btn_ir_registro">Registrar nuevo usuario</string>
+    <string name="titulo_registro">Registro de Usuario</string>
+    <string name="subtitulo_registro">Creación de perfil local con cifrado AES-256 y SHA-256</string>
+    <string name="hint_confirmar_clave">Confirmar contraseña</string>
+    <string name="titulo_consentimiento">Consentimiento Informado</string>
+    <string name="texto_consentimiento">Autorizo el tratamiento local y estrictamente académico de mis datos y vectores biométricos faciales dentro de este dispositivo. La información se almacena cifrada con AES en almacenamiento privado, sin envío ni respaldo en servidores externos.</string>
+    <string name="chk_acepto_consentimiento">Acepto el consentimiento informado para el tratamiento local de datos.</string>
+    <string name="btn_confirmar_registro">Confirmar registro</string>
+    <string name="btn_volver_login">Volver al inicio de sesión</string>
 </resources>
