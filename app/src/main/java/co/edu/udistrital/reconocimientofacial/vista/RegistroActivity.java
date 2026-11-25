@@ -1,5 +1,7 @@
 package co.edu.udistrital.reconocimientofacial.vista;
 
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -8,6 +10,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -21,13 +25,15 @@ import java.util.Locale;
 import co.edu.udistrital.reconocimientofacial.R;
 import co.edu.udistrital.reconocimientofacial.excepciones.BiometriaException;
 import co.edu.udistrital.reconocimientofacial.modelo.GestorSesion;
+import co.edu.udistrital.reconocimientofacial.modelo.TipoPose;
 import co.edu.udistrital.reconocimientofacial.modelo.UsuarioRegistrado;
 import co.edu.udistrital.reconocimientofacial.persistencia.CifradorAES;
 import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioUsuarioArchivo;
 
 /**
- * Pantalla de registro de usuario con aceptacion obligatoria del consentimiento informado.
- * Guarda las credenciales cifradas localmente usando RepositorioUsuarioArchivo.
+ * Pantalla de registro de usuario con aceptacion obligatoria del consentimiento informado
+ * y captura facial guiada de 3 poses.
+ * Guarda las credenciales y embeddings cifrados localmente usando RepositorioUsuarioArchivo.
  */
 public class RegistroActivity extends AppCompatActivity {
 
@@ -35,9 +41,31 @@ public class RegistroActivity extends AppCompatActivity {
     private EditText edtRegistroClave;
     private EditText edtRegistroConfirmarClave;
     private CheckBox chkConsentimiento;
+    private TextView txtEstadoPosesRegistro;
     private TextView txtMensajeRegistro;
 
     private RepositorioUsuarioArchivo repositorioUsuario;
+    private float[] embeddingFrontal;
+    private float[] embeddingIzquierda;
+    private float[] embeddingDerecha;
+
+    private final ActivityResultLauncher<Intent> lanzadorCamaraGuiada =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Intent data = result.getData();
+                    float[] frontal = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_FRONTAL);
+                    float[] izquierda = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_IZQUIERDA);
+                    float[] derecha = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_DERECHA);
+                    if (frontal != null && izquierda != null && derecha != null) {
+                        embeddingFrontal = frontal;
+                        embeddingIzquierda = izquierda;
+                        embeddingDerecha = derecha;
+                        txtEstadoPosesRegistro.setText("3 poses capturadas (Frontal, Izquierda y Derecha) ✓");
+                        txtEstadoPosesRegistro.setTextColor(Color.parseColor("#2E7D32"));
+                        txtMensajeRegistro.setVisibility(View.GONE);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,12 +87,21 @@ public class RegistroActivity extends AppCompatActivity {
         edtRegistroClave = findViewById(R.id.edtRegistroClave);
         edtRegistroConfirmarClave = findViewById(R.id.edtRegistroConfirmarClave);
         chkConsentimiento = findViewById(R.id.chkConsentimiento);
+        txtEstadoPosesRegistro = findViewById(R.id.txtEstadoPosesRegistro);
         txtMensajeRegistro = findViewById(R.id.txtMensajeRegistro);
+        Button btnCapturarTresPoses = findViewById(R.id.btnCapturarTresPoses);
         Button btnConfirmarRegistro = findViewById(R.id.btnConfirmarRegistro);
         Button btnVolverLogin = findViewById(R.id.btnVolverLogin);
 
+        btnCapturarTresPoses.setOnClickListener(v -> abrirCamaraGuiadaRegistro());
         btnConfirmarRegistro.setOnClickListener(v -> registrarUsuario());
         btnVolverLogin.setOnClickListener(v -> finish());
+    }
+
+    private void abrirCamaraGuiadaRegistro() {
+        Intent intent = new Intent(this, CamaraGuiadaActivity.class);
+        intent.putExtra(CamaraGuiadaActivity.EXTRA_MODO, CamaraGuiadaActivity.MODO_REGISTRO);
+        lanzadorCamaraGuiada.launch(intent);
     }
 
     private void registrarUsuario() {
@@ -92,6 +129,11 @@ public class RegistroActivity extends AppCompatActivity {
             return;
         }
 
+        if (embeddingFrontal == null || embeddingIzquierda == null || embeddingDerecha == null) {
+            mostrarError("Debe capturar las 3 poses faciales (Frontal, Izquierda y Derecha) antes de registrarse.");
+            return;
+        }
+
         try {
             String hashClave = CifradorAES.sha256Hex(clave);
             String fechaRegistro = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
@@ -103,6 +145,9 @@ public class RegistroActivity extends AppCompatActivity {
                     true,
                     fechaRegistro
             );
+            nuevoUsuario.guardarEmbedding(TipoPose.FRONTAL, embeddingFrontal);
+            nuevoUsuario.guardarEmbedding(TipoPose.IZQUIERDA, embeddingIzquierda);
+            nuevoUsuario.guardarEmbedding(TipoPose.DERECHA, embeddingDerecha);
 
             repositorioUsuario.guardarUsuario(nuevoUsuario);
             GestorSesion.obtenerInstancia().reiniciarIntentos();

@@ -203,6 +203,14 @@
                         android:layout_height="wrap_content"
                         android:text="@string/btn_galeria"
                         android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnCamaraGuiadaValidacion"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cámara guiada (Liveness)"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

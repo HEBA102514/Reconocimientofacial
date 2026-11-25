@@ -38,6 +38,10 @@ android {
 dependencies {
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
     implementation(libs.constraintlayout)
     implementation(libs.material)
     implementation(libs.mlkit.face.detection)

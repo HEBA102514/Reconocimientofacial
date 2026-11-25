@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ImageDecoder;
 import android.net.Uri;
@@ -43,6 +44,7 @@ import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstandar;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstricto;
 import co.edu.udistrital.reconocimientofacial.persistencia.IRepositorioHistorial;
 import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioHistorialArchivo;
+import co.edu.udistrital.reconocimientofacial.vista.CamaraGuiadaActivity;
 import co.edu.udistrital.reconocimientofacial.vista.IVistaBiometrica;
 import co.edu.udistrital.reconocimientofacial.vista.LoginActivity;
 
@@ -103,6 +105,31 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
                 }
             });
 
+    private final ActivityResultLauncher<Intent> lanzadorCamaraGuiadaValidacion =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Intent data = result.getData();
+                    boolean livenessSuperado = data.getBooleanExtra(
+                            CamaraGuiadaActivity.EXTRA_LIVENESS_SUPERADO, false);
+                    if (livenessSuperado) {
+                        String desafio = data.getStringExtra(CamaraGuiadaActivity.EXTRA_DESAFIO_LIVENESS);
+                        long tiempoDet = data.getLongExtra(CamaraGuiadaActivity.EXTRA_TIEMPO_DETECCION_MS, 0L);
+                        long tiempoInf = data.getLongExtra(CamaraGuiadaActivity.EXTRA_TIEMPO_INFERENCIA_MS, 0L);
+                        String rutaPreview = data.getStringExtra(CamaraGuiadaActivity.EXTRA_RUTA_PREVIEW);
+                        if (rutaPreview != null) {
+                            Bitmap preview = BitmapFactory.decodeFile(rutaPreview);
+                            if (preview != null) {
+                                imgRostroValidacion.setImageBitmap(preview);
+                            }
+                        }
+                        txtMetaValidacion.setText(
+                                "Liveness OK (" + (desafio != null ? desafio : "") + ") | Det: "
+                                        + tiempoDet + " ms | TFLite: " + tiempoInf + " ms"
+                        );
+                    }
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -143,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         Button btnGaleriaReferencia = findViewById(R.id.btnGaleriaReferencia);
         Button btnCamaraValidacion = findViewById(R.id.btnCamaraValidacion);
         Button btnGaleriaValidacion = findViewById(R.id.btnGaleriaValidacion);
+        Button btnCamaraGuiadaValidacion = findViewById(R.id.btnCamaraGuiadaValidacion);
         Button btnVerificarIdentidad = findViewById(R.id.btnVerificarIdentidad);
         Button btnVerHistorial = findViewById(R.id.btnVerHistorial);
         RadioGroup radioGroupValidador = findViewById(R.id.radioGroupValidador);
@@ -165,6 +193,12 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         btnGaleriaValidacion.setOnClickListener(v -> {
             capturandoParaReferencia = false;
             lanzadorGaleria.launch("image/*");
+        });
+
+        btnCamaraGuiadaValidacion.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CamaraGuiadaActivity.class);
+            intent.putExtra(CamaraGuiadaActivity.EXTRA_MODO, CamaraGuiadaActivity.MODO_VERIFICACION);
+            lanzadorCamaraGuiadaValidacion.launch(intent);
         });
 
         radioGroupValidador.setOnCheckedChangeListener((group, checkedId) -> {
