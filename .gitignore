@@ -20,4 +20,5 @@ local.properties
 *.zip
 /.idea/deploymentTargetSelector.xml
 /.idea/other.xml
+PLAN_ORQUESTADOR_AGENDA.md
 
