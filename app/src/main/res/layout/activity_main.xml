@@ -262,6 +262,119 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Condiciones de Prueba para Telemetria CSV -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Condiciones de Prueba (Telemetría CSV)"
+                    android:textColor="#1A237E"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Iluminación:"
+                    android:textColor="#37474F"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupIluminacion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioLuzBuena"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="Buena"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioLuzBaja"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Baja"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioLuzContraluz"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Contraluz"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Tipo de intento:"
+                    android:textColor="#37474F"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupTipoIntento"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoGenuino"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="Genuino"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoImpostor"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Impostor"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoSpoofing"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Spoofing"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+                </RadioGroup>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Boton Verificar -->
         <Button
             android:id="@+id/btnVerificarIdentidad"
@@ -322,6 +435,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:text="@string/btn_historial"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnVerTelemetriaCsv"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Ver / Compartir Telemetría CSV"
                     android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

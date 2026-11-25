@@ -54,6 +54,57 @@ public abstract class ValidadorFacial {
     }
 
     /**
+     * Ejecuta la verificacion biometrica 1:1 comparando el fotograma de validacion contra las
+     * tres poses registradas del usuario (frontal, izquierda y derecha) y tomando la similitud maxima.
+     */
+    public final ResultadoVerificacion verificarContraPerfil(UsuarioRegistrado usuario, Fotograma validacion)
+            throws BiometriaException {
+        if (usuario == null || !usuario.tieneEmbeddingsCompletos()) {
+            throw new BiometriaException(
+                    "BIO-VAL-04",
+                    "El usuario registrado no tiene las 3 poses biometricas completas."
+            );
+        }
+        if (validacion == null || !validacion.tieneEmbedding()) {
+            throw new BiometriaException("BIO-VAL-02", "Falta el fotograma o embedding de Validacion.");
+        }
+
+        // Gancho polimorfico: cada subclase aplica sus propias reglas de calidad al fotograma de validacion
+        validarCalidadFotograma(validacion, "Validacion");
+
+        float[] embeddingValidacion = validacion.getEmbedding();
+        double s1 = calcularSimilitudCoseno(usuario.getEmbeddingFrontal(), embeddingValidacion);
+        double s2 = calcularSimilitudCoseno(usuario.getEmbeddingIzquierda(), embeddingValidacion);
+        double s3 = calcularSimilitudCoseno(usuario.getEmbeddingDerecha(), embeddingValidacion);
+        double similitudMax = Math.max(s1, Math.max(s2, s3));
+
+        double umbral = getUmbral();
+        boolean coincide = similitudMax >= umbral;
+
+        String diagnostico = String.format(
+                Locale.US,
+                "Modo: %s | max(F=%.3f, I=%.3f, D=%.3f) = %.4f (%.1f%%) vs Umbral: %.2f | TFLite: %d ms",
+                getNombreModo(),
+                s1,
+                s2,
+                s3,
+                similitudMax,
+                Math.max(0.0, similitudMax) * 100.0,
+                umbral,
+                validacion.getTiempoInferenciaMs()
+        );
+
+        return new ResultadoVerificacion(
+                similitudMax,
+                umbral,
+                coincide,
+                getNombreModo(),
+                validacion.getTiempoInferenciaMs(),
+                diagnostico
+        );
+    }
+
+    /**
      * Calcula la similitud coseno entre dos vectores de caracteristicas:
      * cos(theta) = (A . B) / (||A|| * ||B||).
      */

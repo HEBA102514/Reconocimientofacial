@@ -3,6 +3,7 @@ package co.edu.udistrital.reconocimientofacial;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 
 import co.edu.udistrital.reconocimientofacial.controlador.ControladorBiometrico;
+import co.edu.udistrital.reconocimientofacial.excepciones.BiometriaException;
 import co.edu.udistrital.reconocimientofacial.excepciones.ModeloNoDisponibleException;
 import co.edu.udistrital.reconocimientofacial.modelo.DetectorRostroMLKit;
 import co.edu.udistrital.reconocimientofacial.modelo.ExtractorMobileFaceNet;
@@ -39,11 +41,15 @@ import co.edu.udistrital.reconocimientofacial.modelo.Fotograma;
 import co.edu.udistrital.reconocimientofacial.modelo.GestorSesion;
 import co.edu.udistrital.reconocimientofacial.modelo.IDetectorRostro;
 import co.edu.udistrital.reconocimientofacial.modelo.IExtractorCaracteristicas;
+import co.edu.udistrital.reconocimientofacial.modelo.RegistroTelemetria;
 import co.edu.udistrital.reconocimientofacial.modelo.ResultadoVerificacion;
+import co.edu.udistrital.reconocimientofacial.modelo.UsuarioRegistrado;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstandar;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstricto;
 import co.edu.udistrital.reconocimientofacial.persistencia.IRepositorioHistorial;
 import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioHistorialArchivo;
+import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioTelemetriaCsv;
+import co.edu.udistrital.reconocimientofacial.persistencia.RepositorioUsuarioArchivo;
 import co.edu.udistrital.reconocimientofacial.vista.CamaraGuiadaActivity;
 import co.edu.udistrital.reconocimientofacial.vista.IVistaBiometrica;
 import co.edu.udistrital.reconocimientofacial.vista.LoginActivity;
@@ -61,8 +67,18 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
     private TextView txtEstadoProgreso;
     private TextView txtVeredictoPrincipal;
     private TextView txtDetalleMetricas;
+    private RadioGroup radioGroupIluminacion;
+    private RadioGroup radioGroupTipoIntento;
 
     private ControladorBiometrico controlador;
+    private RepositorioUsuarioArchivo repositorioUsuario;
+    private RepositorioTelemetriaCsv repositorioTelemetria;
+    private double tamanoModeloMb;
+
+    private Fotograma ultimoFotogramaGuiado;
+    private long ultimoTiempoDeteccionMs;
+    private String ultimoDesafioLiveness = "";
+    private boolean referenciaManualCargada = false;
     private boolean capturandoParaReferencia = true;
 
     private final ActivityResultLauncher<String> lanzadorPermisoCamara =
@@ -111,21 +127,48 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
                     Intent data = result.getData();
                     boolean livenessSuperado = data.getBooleanExtra(
                             CamaraGuiadaActivity.EXTRA_LIVENESS_SUPERADO, false);
+                    String desafio = data.getStringExtra(CamaraGuiadaActivity.EXTRA_DESAFIO_LIVENESS);
+                    String desafioTexto = desafio != null ? desafio : "";
                     if (livenessSuperado) {
-                        String desafio = data.getStringExtra(CamaraGuiadaActivity.EXTRA_DESAFIO_LIVENESS);
                         long tiempoDet = data.getLongExtra(CamaraGuiadaActivity.EXTRA_TIEMPO_DETECCION_MS, 0L);
                         long tiempoInf = data.getLongExtra(CamaraGuiadaActivity.EXTRA_TIEMPO_INFERENCIA_MS, 0L);
+                        float[] embedding = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_VERIFICACION);
+                        float yaw = data.getFloatExtra(CamaraGuiadaActivity.EXTRA_YAW, 0f);
+                        float roll = data.getFloatExtra(CamaraGuiadaActivity.EXTRA_ROLL, 0f);
+                        float ojoIzq = data.getFloatExtra(CamaraGuiadaActivity.EXTRA_OJO_IZQ, -1.0f);
+                        float ojoDer = data.getFloatExtra(CamaraGuiadaActivity.EXTRA_OJO_DER, -1.0f);
                         String rutaPreview = data.getStringExtra(CamaraGuiadaActivity.EXTRA_RUTA_PREVIEW);
+                        Bitmap preview = null;
                         if (rutaPreview != null) {
-                            Bitmap preview = BitmapFactory.decodeFile(rutaPreview);
+                            preview = BitmapFactory.decodeFile(rutaPreview);
                             if (preview != null) {
                                 imgRostroValidacion.setImageBitmap(preview);
                             }
                         }
                         txtMetaValidacion.setText(
-                                "Liveness OK (" + (desafio != null ? desafio : "") + ") | Det: "
+                                "Liveness OK (" + desafioTexto + ") | Det: "
                                         + tiempoDet + " ms | TFLite: " + tiempoInf + " ms"
                         );
+
+                        Fotograma fotogramaGuiado = new Fotograma(
+                                null,
+                                preview,
+                                null,
+                                yaw,
+                                roll,
+                                ojoIzq,
+                                ojoDer
+                        );
+                        fotogramaGuiado.setEmbedding(embedding);
+                        fotogramaGuiado.setTiempoInferenciaMs(tiempoInf);
+
+                        this.ultimoFotogramaGuiado = fotogramaGuiado;
+                        this.ultimoTiempoDeteccionMs = tiempoDet;
+                        this.ultimoDesafioLiveness = desafioTexto;
+                        verificarConPerfilRegistrado(fotogramaGuiado, tiempoDet, desafioTexto);
+                    } else {
+                        this.ultimoFotogramaGuiado = null;
+                        registrarFalloLiveness(desafioTexto);
                     }
                 }
             });
@@ -173,7 +216,10 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         Button btnCamaraGuiadaValidacion = findViewById(R.id.btnCamaraGuiadaValidacion);
         Button btnVerificarIdentidad = findViewById(R.id.btnVerificarIdentidad);
         Button btnVerHistorial = findViewById(R.id.btnVerHistorial);
+        Button btnVerTelemetriaCsv = findViewById(R.id.btnVerTelemetriaCsv);
         RadioGroup radioGroupValidador = findViewById(R.id.radioGroupValidador);
+        radioGroupIluminacion = findViewById(R.id.radioGroupIluminacion);
+        radioGroupTipoIntento = findViewById(R.id.radioGroupTipoIntento);
 
         btnCamaraReferencia.setOnClickListener(v -> {
             capturandoParaReferencia = true;
@@ -213,7 +259,16 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         });
 
         btnVerificarIdentidad.setOnClickListener(v -> {
-            if (controlador != null) {
+            if (controlador == null) {
+                return;
+            }
+            if (ultimoFotogramaGuiado != null && !referenciaManualCargada) {
+                verificarConPerfilRegistrado(
+                        ultimoFotogramaGuiado,
+                        ultimoTiempoDeteccionMs,
+                        ultimoDesafioLiveness
+                );
+            } else {
                 controlador.ejecutarVerificacion();
             }
         });
@@ -223,6 +278,8 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
                 controlador.consultarHistorial();
             }
         });
+
+        btnVerTelemetriaCsv.setOnClickListener(v -> mostrarDialogoTelemetriaCsv());
 
         btnCerrarSesion.setOnClickListener(v -> cerrarSesionUsuario());
     }
@@ -236,6 +293,9 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
     }
 
     private void inicializarArquitecturaMVC() {
+        repositorioUsuario = new RepositorioUsuarioArchivo(this);
+        repositorioTelemetria = new RepositorioTelemetriaCsv(this);
+        tamanoModeloMb = calcularTamanoModeloMb();
         try {
             IDetectorRostro detector = new DetectorRostroMLKit();
             IExtractorCaracteristicas extractor = new ExtractorMobileFaceNet(this);
@@ -249,6 +309,204 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
             );
         } catch (ModeloNoDisponibleException e) {
             mostrarError("Error de Modelo TFLite (" + e.getCodigoError() + ")", e.getMessage());
+        }
+    }
+
+    private double calcularTamanoModeloMb() {
+        try (AssetFileDescriptor afd = getAssets().openFd("mobilefacenet.tflite")) {
+            return afd.getLength() / (1024.0 * 1024.0);
+        } catch (IOException e) {
+            return 0.0;
+        }
+    }
+
+    private double obtenerRamUsadaMb() {
+        Runtime rt = Runtime.getRuntime();
+        return (rt.totalMemory() - rt.freeMemory()) / (1024.0 * 1024.0);
+    }
+
+    private String obtenerIluminacionSeleccionada() {
+        if (radioGroupIluminacion == null) {
+            return "Buena";
+        }
+        int id = radioGroupIluminacion.getCheckedRadioButtonId();
+        if (id == R.id.radioLuzBaja) {
+            return "Baja";
+        }
+        if (id == R.id.radioLuzContraluz) {
+            return "Contraluz";
+        }
+        return "Buena";
+    }
+
+    private String obtenerTipoIntentoSeleccionado() {
+        if (radioGroupTipoIntento == null) {
+            return "GENUINO";
+        }
+        int id = radioGroupTipoIntento.getCheckedRadioButtonId();
+        if (id == R.id.radioIntentoImpostor) {
+            return "IMPOSTOR";
+        }
+        if (id == R.id.radioIntentoSpoofing) {
+            return "SPOOFING";
+        }
+        return "GENUINO";
+    }
+
+    private void verificarConPerfilRegistrado(
+            Fotograma fotogramaGuiado,
+            long tiempoDet,
+            String desafio
+    ) {
+        if (controlador == null || fotogramaGuiado == null) {
+            return;
+        }
+        try {
+            UsuarioRegistrado usuario = repositorioUsuario.cargarUsuario();
+            if (usuario == null || !usuario.tieneEmbeddingsCompletos()) {
+                mostrarError(
+                        "Perfil Incompleto",
+                        "No hay un usuario registrado con sus 3 poses biométricas completas."
+                );
+                return;
+            }
+            ResultadoVerificacion res = controlador.ejecutarVerificacionConPerfil(usuario, fotogramaGuiado);
+            if (res != null) {
+                double ramMb = obtenerRamUsadaMb();
+                String iluminacion = obtenerIluminacionSeleccionada();
+                String tipoIntento = obtenerTipoIntentoSeleccionado();
+                String veredicto = res.isCoincide() ? "COINCIDE" : "NO_COINCIDE";
+                String desafioSeguro = desafio != null ? desafio : "";
+
+                RegistroTelemetria registro = new RegistroTelemetria(
+                        usuario.getNombreUsuario(),
+                        tipoIntento,
+                        iluminacion,
+                        res.getNombreValidador(),
+                        true,
+                        desafioSeguro,
+                        tiempoDet,
+                        fotogramaGuiado.getTiempoInferenciaMs(),
+                        ramMb,
+                        tamanoModeloMb,
+                        res.getSimilitudCoseno(),
+                        res.getUmbralAplicado(),
+                        veredicto
+                );
+                repositorioTelemetria.guardarRegistro(registro);
+
+                txtDetalleMetricas.append(String.format(
+                        Locale.US,
+                        "\nDet: %d ms | RAM: %.1f MB | Modelo: %.2f MB | Luz: %s | Liveness: OK (%s)",
+                        tiempoDet,
+                        ramMb,
+                        tamanoModeloMb,
+                        iluminacion,
+                        desafioSeguro
+                ));
+            }
+        } catch (BiometriaException e) {
+            mostrarError("Error de Verificación (" + e.getCodigoError() + ")", e.getMessage());
+        }
+    }
+
+    private void registrarFalloLiveness(String desafio) {
+        String desafioSeguro = desafio != null ? desafio : "";
+        String iluminacion = obtenerIluminacionSeleccionada();
+        String tipoIntento = obtenerTipoIntentoSeleccionado();
+        double ramMb = obtenerRamUsadaMb();
+        String usuarioActivo = GestorSesion.obtenerInstancia().getUsuarioActivo();
+        String nombreUsuario = usuarioActivo != null ? usuarioActivo : "";
+        String modoValidador = controlador != null && controlador.getValidadorActual() != null
+                ? controlador.getValidadorActual().getNombreModo()
+                : "";
+        double umbral = controlador != null && controlador.getValidadorActual() != null
+                ? controlador.getValidadorActual().getUmbral()
+                : 0.0;
+
+        txtMetaValidacion.setText("Prueba de vida fallida (" + desafioSeguro + ")");
+        txtVeredictoPrincipal.setText("RECHAZADO (Prueba de vida fallida)");
+        txtVeredictoPrincipal.setTextColor(Color.parseColor("#C62828"));
+        txtDetalleMetricas.setText(String.format(
+                Locale.US,
+                "Desafío: %s | Liveness: FALLIDO | Luz: %s | Tipo: %s | RAM: %.1f MB | Modelo: %.2f MB",
+                desafioSeguro,
+                iluminacion,
+                tipoIntento,
+                ramMb,
+                tamanoModeloMb
+        ));
+
+        try {
+            RegistroTelemetria registro = new RegistroTelemetria(
+                    nombreUsuario,
+                    tipoIntento,
+                    iluminacion,
+                    modoValidador,
+                    false,
+                    desafioSeguro,
+                    0L,
+                    0L,
+                    ramMb,
+                    tamanoModeloMb,
+                    0.0,
+                    umbral,
+                    "RECHAZADO_LIVENESS"
+            );
+            repositorioTelemetria.guardarRegistro(registro);
+        } catch (BiometriaException e) {
+            mostrarError("Error de Telemetría (" + e.getCodigoError() + ")", e.getMessage());
+        }
+    }
+
+    private void mostrarDialogoTelemetriaCsv() {
+        try {
+            String ruta = repositorioTelemetria.getRutaArchivo();
+            List<String> registros = repositorioTelemetria.leerRegistrosLegibles();
+            StringBuilder sb = new StringBuilder();
+            sb.append("Archivo: ").append(ruta).append("\n\n");
+            if (registros == null || registros.isEmpty()) {
+                sb.append("Aún no hay registros en telemetria_experimentos.csv.");
+            } else {
+                int limite = Math.min(registros.size(), 15);
+                for (int i = 0; i < limite; i++) {
+                    sb.append(i + 1).append(". ").append(registros.get(i)).append("\n\n");
+                }
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Telemetría Experimental (CSV)")
+                    .setMessage(sb.toString().trim())
+                    .setPositiveButton("Compartir CSV", (d, w) -> compartirTelemetriaCsv())
+                    .setNeutralButton("Limpiar CSV", (d, w) -> {
+                        try {
+                            repositorioTelemetria.limpiarRegistros();
+                            mostrarDialogoTelemetriaCsv();
+                        } catch (BiometriaException e) {
+                            mostrarError("Error de Telemetría (" + e.getCodigoError() + ")", e.getMessage());
+                        }
+                    })
+                    .setNegativeButton("Cerrar", null)
+                    .show();
+        } catch (BiometriaException e) {
+            mostrarError("Error de Telemetría (" + e.getCodigoError() + ")", e.getMessage());
+        }
+    }
+
+    private void compartirTelemetriaCsv() {
+        try {
+            String csv = repositorioTelemetria.leerCsvCompleto();
+            if (csv == null || csv.trim().isEmpty()) {
+                mostrarError("CSV Vacío", "Aún no hay registros de telemetría para compartir.");
+                return;
+            }
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_SUBJECT, "Telemetría Biométrica CSV");
+            intent.putExtra(Intent.EXTRA_TEXT, csv);
+            startActivity(Intent.createChooser(intent, "Compartir Telemetría CSV"));
+        } catch (BiometriaException e) {
+            mostrarError("Error de Telemetría (" + e.getCodigoError() + ")", e.getMessage());
         }
     }
 
@@ -280,12 +538,14 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
 
     @Override
     public void mostrarFotogramaReferencia(Fotograma fotograma) {
+        referenciaManualCargada = true;
         imgRostroReferencia.setImageBitmap(fotograma.getRostroRecortado());
         txtMetaReferencia.setText(fotograma.obtenerResumenMetadatos());
     }
 
     @Override
     public void mostrarFotogramaValidacion(Fotograma fotograma) {
+        ultimoFotogramaGuiado = null;
         imgRostroValidacion.setImageBitmap(fotograma.getRostroRecortado());
         txtMetaValidacion.setText(fotograma.obtenerResumenMetadatos());
     }

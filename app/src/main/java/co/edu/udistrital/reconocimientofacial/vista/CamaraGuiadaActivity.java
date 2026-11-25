@@ -173,6 +173,22 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
 
         btnReintentarCamara.setOnClickListener(v -> reiniciarDesafioLiveness());
         btnCancelarCamara.setOnClickListener(v -> {
+            if (MODO_VERIFICACION.equals(modoActual) && verificadorLiveness != null) {
+                boolean expirado;
+                String desafio;
+                synchronized (bloqueoLiveness) {
+                    expirado = verificadorLiveness.isExpirado();
+                    desafio = verificadorLiveness.getDesafioActual().name();
+                }
+                if (expirado) {
+                    Intent resultado = new Intent();
+                    resultado.putExtra(EXTRA_LIVENESS_SUPERADO, false);
+                    resultado.putExtra(EXTRA_DESAFIO_LIVENESS, desafio);
+                    setResult(RESULT_OK, resultado);
+                    finish();
+                    return;
+                }
+            }
             setResult(RESULT_CANCELED);
             finish();
         });

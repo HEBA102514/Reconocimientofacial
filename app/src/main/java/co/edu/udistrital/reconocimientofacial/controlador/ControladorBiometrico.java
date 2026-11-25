@@ -9,6 +9,7 @@ import co.edu.udistrital.reconocimientofacial.modelo.Fotograma;
 import co.edu.udistrital.reconocimientofacial.modelo.IDetectorRostro;
 import co.edu.udistrital.reconocimientofacial.modelo.IExtractorCaracteristicas;
 import co.edu.udistrital.reconocimientofacial.modelo.ResultadoVerificacion;
+import co.edu.udistrital.reconocimientofacial.modelo.UsuarioRegistrado;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorFacial;
 import co.edu.udistrital.reconocimientofacial.persistencia.IRepositorioHistorial;
 import co.edu.udistrital.reconocimientofacial.vista.IVistaBiometrica;
@@ -124,6 +125,33 @@ public class ControladorBiometrico {
             vista.mostrarResultado(resultado);
         } catch (BiometriaException e) {
             vista.mostrarError("Verificacion Rechazada (" + e.getCodigoError() + ")", e.getMessage());
+        }
+    }
+
+    /**
+     * Ejecuta la verificacion 1:1 comparando el fotograma de validacion contra los tres
+     * embeddings almacenados en el perfil del usuario registrado.
+     */
+    public ResultadoVerificacion ejecutarVerificacionConPerfil(
+            UsuarioRegistrado usuario,
+            Fotograma fotogramaValidacion
+    ) {
+        if (usuario == null || fotogramaValidacion == null) {
+            vista.mostrarError(
+                    "Datos incompletos",
+                    "Se requiere un usuario registrado y un fotograma de validacion."
+            );
+            return null;
+        }
+
+        try {
+            ResultadoVerificacion resultado = validadorActual.verificarContraPerfil(usuario, fotogramaValidacion);
+            repositorioHistorial.guardarResultado(resultado);
+            vista.mostrarResultado(resultado);
+            return resultado;
+        } catch (BiometriaException e) {
+            vista.mostrarError("Verificacion Rechazada (" + e.getCodigoError() + ")", e.getMessage());
+            return null;
         }
     }
 
