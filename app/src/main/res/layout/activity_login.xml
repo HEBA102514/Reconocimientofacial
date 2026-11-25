@@ -110,7 +110,7 @@
                         android:layout_weight="1"
                         android:buttonTint="#0D47A1"
                         android:checked="true"
-                        android:text="Estándar (0.70)"
+                        android:text="Estándar (0.65)"
                         android:textColor="#263238"
                         android:textSize="12sp" />
 
@@ -120,7 +120,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:buttonTint="#0D47A1"
-                        android:text="Estricto (0.82)"
+                        android:text="Estricto (0.83)"
                         android:textColor="#263238"
                         android:textSize="12sp" />
                 </RadioGroup>

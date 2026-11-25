@@ -7,8 +7,8 @@
     <string name="btn_galeria">Galería</string>
     <string name="sin_captura">Sin rostro procesado aún</string>
     <string name="titulo_validador">Paso 3: Estrategia Polimórfica (ValidadorFacial)</string>
-    <string name="modo_estandar">Estándar (τ = 0.70 · Equilibrio FAR/FRR)</string>
-    <string name="modo_estricto">Estricto (τ = 0.82 · Control de Pose ≤ 18° y Ojos Abiertos)</string>
+    <string name="modo_estandar">Estándar (τ = 0.65 · Equilibrio FAR/FRR)</string>
+    <string name="modo_estricto">Estricto (τ = 0.83 · Control de Pose ≤ 18° y Ojos Abiertos)</string>
     <string name="btn_verificar">Paso 4: Verificar Identidad 1:1 (Similitud Coseno)</string>
     <string name="titulo_resultado">Resultado de la Verificación Biométrica</string>
     <string name="resultado_pendiente">Capture ambas muestras y presione Verificar Identidad.</string>

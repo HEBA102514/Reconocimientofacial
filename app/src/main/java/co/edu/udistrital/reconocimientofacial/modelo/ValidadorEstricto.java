@@ -7,12 +7,13 @@ import co.edu.udistrital.reconocimientofacial.excepciones.CalidadInsuficienteExc
 
 /**
  * Subclase polimorfica de ValidadorFacial que minimiza la Tasa de Falsa Aceptacion (FAR)
- * aplicando un umbral estricto (tau = 0.82) y exigiendo control de pose frontal y
+ * aplicando un umbral estricto (tau = 0.83) calibrado en B6 para lograr FAR = 0.00%
+ * bloqueando el ataque de spoofing de 0.8208, y exigiendo control de pose frontal y
  * ojos abiertos sobre el Fotograma (El Fadel, 2025).
  */
 public class ValidadorEstricto extends ValidadorFacial {
 
-    public static final double UMBRAL_ESTRICTO = 0.82;
+    public static final double UMBRAL_ESTRICTO = 0.83;
     public static final float MAX_ANGULO_GRADOS = 18.0f;
     public static final float MIN_PROB_OJOS_ABIERTOS = 0.50f;
 
