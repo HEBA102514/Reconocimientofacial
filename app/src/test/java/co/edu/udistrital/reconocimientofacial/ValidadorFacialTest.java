@@ -15,6 +15,8 @@ import co.edu.udistrital.reconocimientofacial.excepciones.CalidadInsuficienteExc
 import co.edu.udistrital.reconocimientofacial.modelo.ExtractorMobileFaceNet;
 import co.edu.udistrital.reconocimientofacial.modelo.Fotograma;
 import co.edu.udistrital.reconocimientofacial.modelo.ResultadoVerificacion;
+import co.edu.udistrital.reconocimientofacial.modelo.TipoPose;
+import co.edu.udistrital.reconocimientofacial.modelo.UsuarioRegistrado;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstandar;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorEstricto;
 import co.edu.udistrital.reconocimientofacial.modelo.ValidadorFacial;
@@ -107,5 +109,72 @@ public class ValidadorFacialTest {
 
         repositorio.limpiarHistorial();
         assertTrue(repositorio.leerHistorial().isEmpty());
+    }
+
+    @Test
+    public void verificarContraPerfil_tomaSimilitudMaximaDeLasTresPoses() throws BiometriaException {
+        UsuarioRegistrado usuario = new UsuarioRegistrado("samuel", "hash123", true, "2026-11-24");
+        usuario.guardarEmbedding(
+                TipoPose.FRONTAL,
+                ExtractorMobileFaceNet.normalizarL2(new float[]{0.0f, 1.0f, 0.0f})
+        );
+        usuario.guardarEmbedding(
+                TipoPose.IZQUIERDA,
+                ExtractorMobileFaceNet.normalizarL2(new float[]{0.0f, 0.0f, 1.0f})
+        );
+        usuario.guardarEmbedding(
+                TipoPose.DERECHA,
+                ExtractorMobileFaceNet.normalizarL2(new float[]{0.8f, 0.6f, 0.0f})
+        );
+
+        Fotograma validacion = new Fotograma(null, null, null, 0.0f, 0.0f, 0.95f, 0.95f);
+        validacion.setEmbedding(ExtractorMobileFaceNet.normalizarL2(new float[]{1.0f, 0.0f, 0.0f}));
+
+        ValidadorFacial validador = new ValidadorEstandar();
+        ResultadoVerificacion resultado = validador.verificarContraPerfil(usuario, validacion);
+
+        assertTrue(resultado.isCoincide());
+        assertEquals(0.80, resultado.getSimilitudCoseno(), 1e-4);
+    }
+
+    @Test(expected = BiometriaException.class)
+    public void verificarContraPerfil_lanzaExcepcionSiFaltanEmbeddings() throws BiometriaException {
+        UsuarioRegistrado usuario = new UsuarioRegistrado("samuel", "hash123", true, "2026-11-24");
+        usuario.guardarEmbedding(TipoPose.FRONTAL, new float[]{1.0f, 0.0f});
+        usuario.guardarEmbedding(TipoPose.IZQUIERDA, new float[]{0.0f, 1.0f});
+
+        Fotograma validacion = new Fotograma(null, null, null, 0.0f, 0.0f, 0.95f, 0.95f);
+        validacion.setEmbedding(new float[]{1.0f, 0.0f});
+
+        ValidadorFacial validador = new ValidadorEstandar();
+        try {
+            validador.verificarContraPerfil(usuario, validacion);
+        } catch (BiometriaException e) {
+            assertEquals("BIO-VAL-04", e.getCodigoError());
+            throw e;
+        }
+    }
+
+    @Test
+    public void usuarioRegistrado_protegeTresPosesConCopiaDefensiva() {
+        UsuarioRegistrado usuario = new UsuarioRegistrado("samuel", "hash123", true, "2026-11-24");
+
+        TipoPose[] poses = new TipoPose[]{TipoPose.FRONTAL, TipoPose.IZQUIERDA, TipoPose.DERECHA};
+        for (int i = 0; i < poses.length; i++) {
+            float[] entrada = new float[]{0.5f + i, 0.8f};
+            usuario.guardarEmbedding(poses[i], entrada);
+
+            // Modificar el arreglo original despues de guardar no debe afectar el estado interno
+            entrada[0] = -999.0f;
+            float[] recuperado = usuario.obtenerEmbedding(poses[i]);
+            assertNotNull(recuperado);
+            assertEquals(0.5f + i, recuperado[0], 1e-5f);
+            assertEquals(0.8f, recuperado[1], 1e-5f);
+
+            // Modificar el arreglo devuelto tampoco debe alterar el estado interno
+            recuperado[1] = 321.0f;
+            float[] verificado = usuario.obtenerEmbedding(poses[i]);
+            assertEquals(0.8f, verificado[1], 1e-5f);
+        }
     }
 }
