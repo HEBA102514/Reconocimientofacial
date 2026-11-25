@@ -99,7 +99,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Tarjeta de Captura Facial Guiada (3 Poses) -->
+        <!-- Tarjeta de Captura Biométrica (Liveness Activo + 3 Poses) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -117,7 +117,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Captura Facial Guiada (3 Poses)"
+                    android:text="Captura Biométrica (Liveness Activo + 3 Poses)"
                     android:textColor="#1A237E"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -127,7 +127,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Poses faciales: pendientes (0/3)"
+                    android:text="Prueba de vida y 3 poses faciales: pendientes (0/3)"
                     android:textColor="#546E7A"
                     android:textSize="13sp" />
 
@@ -137,7 +137,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Capturar 3 poses faciales"
+                    android:text="Iniciar captura (Liveness + 3 poses)"
                     android:textSize="13sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

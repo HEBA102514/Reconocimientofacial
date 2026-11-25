@@ -206,7 +206,19 @@ public class MainActivity extends AppCompatActivity implements IVistaBiometrica 
         TextView txtUsuarioSesion = findViewById(R.id.txtUsuarioSesion);
 
         String usuarioActivo = GestorSesion.obtenerInstancia().getUsuarioActivo();
-        txtUsuarioSesion.setText("Sesión activa: " + (usuarioActivo != null ? usuarioActivo : ""));
+        String metodo = GestorSesion.obtenerInstancia().getMetodoAcceso();
+        txtUsuarioSesion.setText(
+                "Sesión activa: "
+                        + (usuarioActivo != null ? usuarioActivo : "")
+                        + (metodo != null ? " (" + metodo + ")" : "")
+        );
+
+        String resumenLogin = GestorSesion.obtenerInstancia().getUltimoResumenBiometrico();
+        if (resumenLogin != null && !resumenLogin.isEmpty()) {
+            txtVeredictoPrincipal.setText("ACCESO BIOMÉTRICO CONCEDIDO");
+            txtVeredictoPrincipal.setTextColor(Color.parseColor("#2E7D32"));
+            txtDetalleMetricas.setText(resumenLogin);
+        }
 
         Button btnCerrarSesion = findViewById(R.id.btnCerrarSesion);
         Button btnCamaraReferencia = findViewById(R.id.btnCamaraReferencia);

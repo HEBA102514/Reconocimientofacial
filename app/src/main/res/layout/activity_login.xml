@@ -33,7 +33,7 @@
             android:textColor="#455A64"
             android:textSize="12sp" />
 
-        <!-- Tarjeta de Inicio de Sesion -->
+        <!-- Tarjeta 1: Identificacion y Acceso Biometrico 1:1 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -50,7 +50,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/titulo_login"
+                    android:text="1. Identificación y Acceso Biométrico 1:1"
                     android:textColor="#1A237E"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -59,7 +59,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="@string/subtitulo_login"
+                    android:text="Verificación contra las 3 poses cifradas (AES) con prueba de vida activa"
                     android:textColor="#546E7A"
                     android:textSize="12sp" />
 
@@ -67,7 +67,7 @@
                     android:id="@+id/txtEstadoRegistroLogin"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="10dp"
                     android:background="#E3F2FD"
                     android:padding="10dp"
                     android:textColor="#0D47A1"
@@ -78,7 +78,7 @@
                     android:id="@+id/edtUsuarioLogin"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="10dp"
                     android:autofillHints="username"
                     android:backgroundTint="#546E7A"
                     android:hint="@string/hint_usuario"
@@ -87,6 +87,192 @@
                     android:textColor="#263238"
                     android:textColorHint="#78909C"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Validador biométrico:"
+                    android:textColor="#263238"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupValidadorLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioValidadorEstandarLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:checked="true"
+                        android:text="Estándar (0.70)"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioValidadorEstrictoLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:text="Estricto (0.82)"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Iluminación (CSV experimental):"
+                    android:textColor="#263238"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupLuzLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioLuzBuenaLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:checked="true"
+                        android:text="Buena"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioLuzBajaLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:text="Baja"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioLuzContraluzLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:text="Contraluz"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Tipo de prueba (CSV experimental):"
+                    android:textColor="#263238"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupIntentoLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoGenuinoLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:checked="true"
+                        android:text="Genuino"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoImpostorLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:text="Impostor"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+
+                    <RadioButton
+                        android:id="@+id/radioIntentoSpoofingLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:buttonTint="#0D47A1"
+                        android:text="Spoofing"
+                        android:textColor="#263238"
+                        android:textSize="12sp" />
+                </RadioGroup>
+
+                <Button
+                    android:id="@+id/btnIniciarBiometria"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="#0D47A1"
+                    android:paddingVertical="12dp"
+                    android:text="Iniciar sesión con Rostro (Liveness + 1:1)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtMensajeLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="#C62828"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tarjeta 2: Respaldo por Contrasena -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2. Respaldo por Contraseña · Rúbrica #1"
+                    android:textColor="#1A237E"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Acceso alternativo validado con hash SHA-256 sobre el usuario ingresado"
+                    android:textColor="#78909C"
+                    android:textSize="12sp" />
 
                 <EditText
                     android:id="@+id/edtClaveLogin"
@@ -102,34 +288,42 @@
                     android:textColorHint="#78909C"
                     android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/txtMensajeLogin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:textColor="#C62828"
-                    android:textSize="13sp"
-                    android:visibility="gone" />
-
                 <Button
                     android:id="@+id/btnIniciarSesion"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:paddingVertical="12dp"
-                    android:text="@string/btn_iniciar_sesion"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnIrARegistro"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_ir_registro"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="10dp"
+                    android:paddingVertical="10dp"
+                    android:text="Iniciar sesión con Contraseña"
+                    android:textColor="#0D47A1"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:strokeColor="#0D47A1" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Acciones Inferiores -->
+        <Button
+            android:id="@+id/btnIrARegistro"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Registrar usuario (Consentimiento + Liveness + 3 Poses)"
+            android:textColor="#1A237E"
+            android:textSize="13sp"
+            app:strokeColor="#90CAF9" />
+
+        <Button
+            android:id="@+id/btnVerCsvLogin"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Ver / Compartir Telemetría CSV"
+            android:textColor="#263238"
+            android:textSize="13sp"
+            app:strokeColor="#B0BEC5" />
     </LinearLayout>
 </ScrollView>

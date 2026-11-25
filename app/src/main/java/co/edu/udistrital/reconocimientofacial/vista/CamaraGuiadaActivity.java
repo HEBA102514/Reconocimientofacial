@@ -58,7 +58,8 @@ import co.edu.udistrital.reconocimientofacial.modelo.VerificadorLiveness;
 
 /**
  * Pantalla reutilizable de camara guiada con CameraX, ML Kit y MobileFaceNet.
- * Soporta captura de 3 poses para registro y prueba de vida (liveness) para verificacion.
+ * Soporta prueba de vida activa (liveness) seguida de captura de 3 poses en registro
+ * o captura frontal en verificacion.
  */
 public class CamaraGuiadaActivity extends AppCompatActivity {
 
@@ -111,7 +112,7 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
     private float[] embeddingIzquierda;
     private float[] embeddingDerecha;
 
-    private boolean livenessSuperadoFase1 = false;
+    private volatile boolean livenessSuperadoFase1 = false;
     private volatile boolean capturaCompletada = false;
     private volatile boolean actividadCerrada = false;
     private final AtomicBoolean procesandoCaptura = new AtomicBoolean(false);
@@ -160,16 +161,10 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
         btnReintentarCamara = findViewById(R.id.btnReintentarCamara);
         Button btnCancelarCamara = findViewById(R.id.btnCancelarCamara);
 
-        if (MODO_VERIFICACION.equals(modoActual)) {
-            verificadorLiveness = new VerificadorLiveness();
-            txtTituloModoCamara.setText("Verificación con Prueba de Vida");
-            txtInstruccionCamara.setText(verificadorLiveness.getDesafioActual().getInstruccion());
-            txtDetalleCamara.setText("Tiempo restante: " + verificadorLiveness.obtenerSegundosRestantes() + " s");
-        } else {
-            txtTituloModoCamara.setText("Registro Guiado (1/3)");
-            txtInstruccionCamara.setText(posesRegistro[0].getInstruccion());
-            txtDetalleCamara.setText("Ubique su rostro frente a la cámara");
-        }
+        verificadorLiveness = new VerificadorLiveness();
+        txtTituloModoCamara.setText(obtenerTituloLiveness());
+        txtInstruccionCamara.setText(verificadorLiveness.getDesafioActual().getInstruccion());
+        txtDetalleCamara.setText("Tiempo restante: " + verificadorLiveness.obtenerSegundosRestantes() + " s");
 
         btnReintentarCamara.setOnClickListener(v -> reiniciarDesafioLiveness());
         btnCancelarCamara.setOnClickListener(v -> {
@@ -225,12 +220,15 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
     }
 
     private void iniciarCamara() {
-        if (MODO_VERIFICACION.equals(modoActual) && verificadorLiveness != null) {
-            verificadorLiveness.reiniciar();
-            livenessSuperadoFase1 = false;
-            framesEstables = 0;
+        if (verificadorLiveness != null) {
+            synchronized (bloqueoLiveness) {
+                verificadorLiveness.reiniciar();
+                livenessSuperadoFase1 = false;
+                framesEstables = 0;
+                indicePoseActual = 0;
+            }
             actualizarUiVerificacion(
-                    "Verificación con Prueba de Vida",
+                    obtenerTituloLiveness(),
                     verificadorLiveness.getDesafioActual().getInstruccion(),
                     "Tiempo restante: " + verificadorLiveness.obtenerSegundosRestantes() + " s",
                     false
@@ -311,7 +309,92 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
                 });
     }
 
+    private String obtenerTituloLiveness() {
+        return MODO_VERIFICACION.equals(modoActual)
+                ? "Verificación con Prueba de Vida"
+                : "Registro - Prueba de Vida";
+    }
+
+    /**
+     * Evalua la fase 1 de liveness activo tanto en registro como en verificacion.
+     * Devuelve true solo cuando la prueba de vida ya fue superada en un fotograma previo.
+     */
+    private boolean evaluarFaseLivenessSiPendiente(List<Face> rostros) {
+        if (livenessSuperadoFase1) {
+            return true;
+        }
+
+        int cantidadRostros = rostros != null ? rostros.size() : 0;
+        float yaw = 0f;
+        float ojoIzq = -1.0f;
+        float ojoDer = -1.0f;
+        if (cantidadRostros >= 1) {
+            Face primerRostro = rostros.get(0);
+            yaw = primerRostro.getHeadEulerAngleY();
+            ojoIzq = primerRostro.getLeftEyeOpenProbability() != null
+                    ? primerRostro.getLeftEyeOpenProbability() : -1.0f;
+            ojoDer = primerRostro.getRightEyeOpenProbability() != null
+                    ? primerRostro.getRightEyeOpenProbability() : -1.0f;
+        }
+
+        VerificadorLiveness.Estado estado;
+        String instruccion;
+        long segundos;
+        synchronized (bloqueoLiveness) {
+            if (livenessSuperadoFase1) {
+                return true;
+            }
+            estado = verificadorLiveness.evaluarFotograma(cantidadRostros, yaw, ojoIzq, ojoDer);
+            instruccion = verificadorLiveness.getDesafioActual().getInstruccion();
+            segundos = verificadorLiveness.obtenerSegundosRestantes();
+            if (estado == VerificadorLiveness.Estado.SUPERADO) {
+                livenessSuperadoFase1 = true;
+                framesEstables = 0;
+                indicePoseActual = 0;
+            }
+        }
+
+        String tituloLiveness = obtenerTituloLiveness();
+        if (estado == VerificadorLiveness.Estado.EXPIRADO) {
+            actualizarUiVerificacion(
+                    tituloLiveness,
+                    "Prueba de vida expirada (8 s). Posible foto o falta de movimiento.",
+                    "Presione Reintentar para generar un nuevo desafío",
+                    true
+            );
+            return false;
+        }
+
+        if (estado == VerificadorLiveness.Estado.EN_PROGRESO) {
+            String detalle = cantidadRostros != 1
+                    ? "Advertencia: debe aparecer solo 1 rostro | Tiempo restante: " + segundos + " s"
+                    : String.format(Locale.US, "Tiempo restante: %d s | Yaw: %.1f°", segundos, yaw);
+            actualizarUiVerificacion(tituloLiveness, instruccion, detalle, false);
+            return false;
+        }
+
+        if (MODO_VERIFICACION.equals(modoActual)) {
+            actualizarUiVerificacion(
+                    "Verificación - Captura Frontal",
+                    "¡Prueba de vida superada! Mire de frente para capturar...",
+                    "Mantenga 1 rostro de frente a la cámara",
+                    false
+            );
+        } else {
+            actualizarUiVerificacion(
+                    "Registro Guiado (1/3)",
+                    posesRegistro[0].getInstruccion(),
+                    "¡Prueba de vida superada! Iniciando captura de 3 poses...",
+                    false
+            );
+        }
+        return false;
+    }
+
     private void procesarModoRegistro(ImageProxy imageProxy, List<Face> rostros) {
+        if (!evaluarFaseLivenessSiPendiente(rostros)) {
+            return;
+        }
         if (indicePoseActual >= posesRegistro.length) {
             return;
         }
@@ -385,6 +468,10 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
     }
 
     private void procesarModoVerificacion(ImageProxy imageProxy, List<Face> rostros, long tiempoDeteccionMs) {
+        if (!evaluarFaseLivenessSiPendiente(rostros)) {
+            return;
+        }
+
         int cantidadRostros = rostros != null ? rostros.size() : 0;
         float yaw = 0f;
         float roll = 0f;
@@ -399,51 +486,6 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
                     ? primerRostro.getLeftEyeOpenProbability() : -1.0f;
             ojoDer = primerRostro.getRightEyeOpenProbability() != null
                     ? primerRostro.getRightEyeOpenProbability() : -1.0f;
-        }
-
-        if (!livenessSuperadoFase1) {
-            VerificadorLiveness.Estado estado;
-            String instruccion;
-            long segundos;
-            synchronized (bloqueoLiveness) {
-                estado = verificadorLiveness.evaluarFotograma(cantidadRostros, yaw, ojoIzq, ojoDer);
-                instruccion = verificadorLiveness.getDesafioActual().getInstruccion();
-                segundos = verificadorLiveness.obtenerSegundosRestantes();
-                if (estado == VerificadorLiveness.Estado.SUPERADO) {
-                    livenessSuperadoFase1 = true;
-                    framesEstables = 0;
-                }
-            }
-
-            if (estado == VerificadorLiveness.Estado.EXPIRADO) {
-                actualizarUiVerificacion(
-                        "Verificación con Prueba de Vida",
-                        "Prueba de vida expirada (8 s). Posible foto o falta de movimiento.",
-                        "Presione Reintentar para generar un nuevo desafío",
-                        true
-                );
-                return;
-            }
-
-            if (estado == VerificadorLiveness.Estado.EN_PROGRESO) {
-                String detalle;
-                if (cantidadRostros != 1) {
-                    detalle = "Advertencia: debe aparecer solo 1 rostro | Tiempo restante: " + segundos + " s";
-                } else {
-                    detalle = String.format(Locale.US, "Tiempo restante: %d s | Yaw: %.1f°", segundos, yaw);
-                }
-                actualizarUiVerificacion("Verificación con Prueba de Vida", instruccion, detalle, false);
-                return;
-            }
-
-            // Estado SUPERADO -> pasa automaticamente a Fase 2
-            actualizarUiVerificacion(
-                    "Verificación - Captura Frontal",
-                    "¡Prueba de vida superada! Mire de frente para capturar...",
-                    "Mantenga 1 rostro de frente a la cámara",
-                    false
-            );
-            return;
         }
 
         // Fase 2: Captura frontal tras superar prueba de vida
@@ -602,6 +644,12 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
     }
 
     private void entregarResultadoRegistro() {
+        final String desafio;
+        synchronized (bloqueoLiveness) {
+            desafio = verificadorLiveness != null
+                    ? verificadorLiveness.getDesafioActual().name()
+                    : "";
+        }
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) {
                 return;
@@ -610,6 +658,7 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
             resultado.putExtra(EXTRA_EMBEDDING_FRONTAL, embeddingFrontal);
             resultado.putExtra(EXTRA_EMBEDDING_IZQUIERDA, embeddingIzquierda);
             resultado.putExtra(EXTRA_EMBEDDING_DERECHA, embeddingDerecha);
+            resultado.putExtra(EXTRA_DESAFIO_LIVENESS, desafio);
             setResult(RESULT_OK, resultado);
             finish();
         });
@@ -655,11 +704,12 @@ public class CamaraGuiadaActivity extends AppCompatActivity {
             verificadorLiveness.reiniciar();
             livenessSuperadoFase1 = false;
             framesEstables = 0;
+            indicePoseActual = 0;
             nuevaInstruccion = verificadorLiveness.getDesafioActual().getInstruccion();
             segundosRestantes = verificadorLiveness.obtenerSegundosRestantes();
         }
         btnReintentarCamara.setVisibility(View.GONE);
-        txtTituloModoCamara.setText("Verificación con Prueba de Vida");
+        txtTituloModoCamara.setText(obtenerTituloLiveness());
         txtInstruccionCamara.setText(nuevaInstruccion);
         txtDetalleCamara.setText("Tiempo restante: " + segundosRestantes + " s");
     }

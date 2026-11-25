@@ -56,11 +56,15 @@ public class RegistroActivity extends AppCompatActivity {
                     float[] frontal = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_FRONTAL);
                     float[] izquierda = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_IZQUIERDA);
                     float[] derecha = data.getFloatArrayExtra(CamaraGuiadaActivity.EXTRA_EMBEDDING_DERECHA);
+                    String desafio = data.getStringExtra(CamaraGuiadaActivity.EXTRA_DESAFIO_LIVENESS);
+                    if (desafio == null || desafio.trim().isEmpty()) {
+                        desafio = "ACTIVO";
+                    }
                     if (frontal != null && izquierda != null && derecha != null) {
                         embeddingFrontal = frontal;
                         embeddingIzquierda = izquierda;
                         embeddingDerecha = derecha;
-                        txtEstadoPosesRegistro.setText("3 poses capturadas (Frontal, Izquierda y Derecha) ✓");
+                        txtEstadoPosesRegistro.setText("Liveness (" + desafio + ") + 3 poses capturadas ✓");
                         txtEstadoPosesRegistro.setTextColor(Color.parseColor("#2E7D32"));
                         txtMensajeRegistro.setVisibility(View.GONE);
                     }
@@ -130,7 +134,7 @@ public class RegistroActivity extends AppCompatActivity {
         }
 
         if (embeddingFrontal == null || embeddingIzquierda == null || embeddingDerecha == null) {
-            mostrarError("Debe capturar las 3 poses faciales (Frontal, Izquierda y Derecha) antes de registrarse.");
+            mostrarError("Debe completar la prueba de vida y capturar las 3 poses faciales antes de registrarse.");
             return;
         }
 

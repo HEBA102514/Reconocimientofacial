@@ -15,12 +15,16 @@ public class GestorSesion {
     private long bloqueadoHastaMs;
     private boolean sesionActiva;
     private String usuarioActivo;
+    private String metodoAcceso;
+    private String ultimoResumenBiometrico;
 
     public GestorSesion() {
         this.intentosFallidos = 0;
         this.bloqueadoHastaMs = 0L;
         this.sesionActiva = false;
         this.usuarioActivo = null;
+        this.metodoAcceso = null;
+        this.ultimoResumenBiometrico = null;
     }
 
     public static GestorSesion obtenerInstancia() {
@@ -47,16 +51,68 @@ public class GestorSesion {
             bloqueadoHastaMs = 0L;
             sesionActiva = true;
             usuarioActivo = usuarioGuardado.getNombreUsuario();
+            metodoAcceso = "Contraseña";
+            ultimoResumenBiometrico = null;
             return true;
         }
 
+        registrarFalloAccesoEnTiempo(ahoraMs);
+        return false;
+    }
+
+    public boolean iniciarSesionBiometrica(
+            UsuarioRegistrado usuarioGuardado,
+            boolean coincideBiometria,
+            String resumenBiometrico
+    ) {
+        return iniciarSesionBiometricaEnTiempo(
+                usuarioGuardado,
+                coincideBiometria,
+                resumenBiometrico,
+                System.currentTimeMillis()
+        );
+    }
+
+    public boolean iniciarSesionBiometricaEnTiempo(
+            UsuarioRegistrado usuarioGuardado,
+            boolean coincideBiometria,
+            String resumenBiometrico,
+            long ahoraMs
+    ) {
+        if (estaBloqueadoEnTiempo(ahoraMs)) {
+            return false;
+        }
+
+        if (usuarioGuardado != null && coincideBiometria) {
+            intentosFallidos = 0;
+            bloqueadoHastaMs = 0L;
+            sesionActiva = true;
+            usuarioActivo = usuarioGuardado.getNombreUsuario();
+            metodoAcceso = "Biometría Facial 1:1";
+            ultimoResumenBiometrico = resumenBiometrico;
+            return true;
+        }
+
+        registrarFalloAccesoEnTiempo(ahoraMs);
+        return false;
+    }
+
+    public void registrarFalloAcceso() {
+        registrarFalloAccesoEnTiempo(System.currentTimeMillis());
+    }
+
+    public void registrarFalloAccesoEnTiempo(long ahoraMs) {
+        if (estaBloqueadoEnTiempo(ahoraMs)) {
+            return;
+        }
         sesionActiva = false;
         usuarioActivo = null;
+        metodoAcceso = null;
+        ultimoResumenBiometrico = null;
         intentosFallidos++;
         if (intentosFallidos >= MAX_INTENTOS_FALLIDOS) {
             bloqueadoHastaMs = ahoraMs + TIEMPO_BLOQUEO_MS;
         }
-        return false;
     }
 
     public boolean estaBloqueado() {
@@ -89,6 +145,8 @@ public class GestorSesion {
     public void cerrarSesion() {
         sesionActiva = false;
         usuarioActivo = null;
+        metodoAcceso = null;
+        ultimoResumenBiometrico = null;
     }
 
     public void reiniciarIntentos() {
@@ -102,6 +160,14 @@ public class GestorSesion {
 
     public String getUsuarioActivo() {
         return usuarioActivo;
+    }
+
+    public String getMetodoAcceso() {
+        return metodoAcceso;
+    }
+
+    public String getUltimoResumenBiometrico() {
+        return ultimoResumenBiometrico;
     }
 
     public int getIntentosFallidos() {
